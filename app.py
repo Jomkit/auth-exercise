@@ -1,4 +1,4 @@
-from flask import Flask, render_template, redirect, flash, session, g, request
+from flask import Flask, render_template, redirect, flash, session, Response, abort
 from functools import wraps
 from models import db, connect_db, User, Feedback
 from forms import RegisterForm, LoginForm, FeedbackForm
@@ -20,7 +20,8 @@ def login_required(f):
     def decorated_function(*args, **kwargs):
         if session.get('username') is None:
             flash('Unauthorized access', 'danger')
-            return redirect('/login')
+            # return redirect('/login')
+            return Response(401)
         return f(*args, **kwargs)
     return decorated_function
 
@@ -28,12 +29,26 @@ def check_same_user(username):
     # User logged in, fetch user data for user page attempting to be access
     user = User.query.get_or_404(username)
     # Check session user aka logged in user is same as user being accessed
-    if session.get('username', False) != user.username:
+    check_user = session.get('username')
+    if user.username != session.get('username'):
         # send to own user page
-        flash('Unauthorized access', 'warning')
-        return redirect(f'/users/{session["username"]}')
+        flash(f'Unauthorized access', 'warning')
+        abort(401)
     else: 
         return user
+
+@app.errorhandler(404)
+def user_not_found(e):
+    """In the case of this app, 404 will result from a user instance
+    not being found
+    """
+    return render_template('error-page.html', e=e), 404 
+
+@app.errorhandler(401)
+def unauthorized_access(e):
+    """In the case of this app, 401 will result from attempting to access another user's account
+    """
+    return render_template('error-page.html', e=e), 401
 
 @app.route('/')
 def redirect_to_register():
@@ -133,6 +148,41 @@ def feedback_form(username):
         return redirect(f'/users/{user.username}')
     
     return render_template('feedback-form.html', form=form)
+
+@app.route('/feedback/<int:id>/update', methods=['GET', 'POST'])
+@login_required
+def update_feedback(id):
+    """Update a user's feedback"""
+
+    fb = Feedback.query.get_or_404(id)
+    form = FeedbackForm(obj=fb)
+    user = check_same_user(fb.user.username)
+
+    if form.validate_on_submit():
+        fb.title = form.title.data
+        fb.content = form.content.data
+        
+        db.session.add(fb)
+        db.session.commit()
+        flash('Feedback updated!', 'success')
+        return redirect(f'/users/{user.username}')
+
+    return render_template('feedback-update-form.html', form=form)
+
+@app.route('/feedback/<string:id>/delete', methods=['POST'])
+@login_required
+def delete_feedback(id):
+    """Delete user.
+    Should first check that the user requesting to delete is the same
+    as the current user logged in"""
+    fb = Feedback.query.get_or_404(id)
+    # Check user is user, else redirect to user page
+    user = check_same_user(fb.user.username)
+    db.session.delete(fb)
+    db.session.commit()
+    
+    flash('Feedback deleted', 'danger')
+    return redirect(f'/users/{user.username}')
 
 @app.route('/logout', methods=['POST'])
 def logout():

@@ -2,7 +2,8 @@
 {% block title %}User Info{% endblock %}
 
 {% block content %}
-<div class="card my-5">
+<h3 class="display-3 mt-5">User</h3>
+<div class="card mb-5">
   <div class="card-body">
     <h3 class="card-title">{{ user.username }}</h3>
     <ul class="list-group list-group-flush">
@@ -36,18 +37,23 @@
 <a href="/users/{{ user.username }}/feedback/add" class="btn btn-primary my-3">Add Feedback</a>
     {% for fb in user.feedback %}
         <div class="card mb-3">
-        <div class="card-body">
-            <h5 class="card-title">{{ fb.title }}</h5>
-            <figure>
-                <blockquote class="blockquote">
-                    <p>{{ fb.content }}</p>
-                </blockquote>
-                <figcaption class="blockquote-footer">
-                    <cite title="username">{{ fb.user.username }}</cite>
-                </figcaption>
-            </figure>
-            
-        </div>
+            <div class="card-body">
+                <h5 class="card-title row row-cols-auto mx-1">
+                    {{ fb.title }}
+                    <form action="/feedback/{{fb.id}}/delete" method="POST">
+                        <button class="btn btn-sm btn-danger">X</button>
+                    </form>
+                </h5>
+                <figure>
+                    <blockquote class="blockquote">
+                        <p>{{ fb.content }}</p>
+                    </blockquote>
+                    <figcaption class="blockquote-footer">
+                        <cite title="username">{{ fb.user.username }}</cite>
+                    </figcaption>
+                </figure>
+                <a href="/feedback/{{fb.id}}/update" class="btn btn-primary">Edit</a>
+            </div>
         </div>
     {% endfor %}
 </div>

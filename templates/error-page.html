@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}
+    {% if e.code == 404 %}
+    {{e.code}}: {{e.name}}
+    {% elif e.code == 401 %}
+    {{e.code}}: Unauthorized Access
+    {% endif %}
+{% endblock %}
+{% block content %}
+
+    {% if e.code == 404 %}
+    <h1 class="text-center my-5">{{e.code}}: User Not Found</h1>
+    <div class="col m-5">
+        <h5 class="m-5">{{e.name}}: User or page does not exist</h5>
+        <p>{{e.description}}</p>
+        <a href="/" class="btn btn-primary btn-lg mx-5">Return</a>
+    
+    </div>
+    {% elif e.code == 401 %}
+    <h1 class="text-center my-5">{{e.code}}: Unauthorized Access</h1>
+    <div class="col m-5">
+        <h5 class="m-5">{{e.name}}: Current username does not match requested user profile username</h5>
+        <p>{{e.description}}</p>
+        <a href="/" class="btn btn-primary btn-lg mx-5">Return</a>
+    
+    </div>
+    {% endif %}
+
+{% endblock %}
