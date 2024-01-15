@@ -20,9 +20,15 @@ class User(db.Model):
     first_name = db.Column(db.String(30), nullable=False)
     last_name = db.Column(db.String(30), nullable=False)
     is_admin = db.Column(db.Boolean, nullable=False, default=False)
+    reset_token = db.Column(db.String, default=None)
 
     feedback = db.relationship('Feedback', backref='user', cascade='all, delete-orphan')
 
+    def newPassword(self, password):
+        hashed = bcrypt.generate_password_hash(password)
+        hashed_utf8 = hashed.decode('utf8')
+        return hashed_utf8
+    
     @classmethod
     def register(cls, username, password, email, first_name, last_name):
         """

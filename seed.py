@@ -1,4 +1,5 @@
 from models import User, Feedback, connect_db, db
+from SECRETS import RECIPIENT_EMAIL # RECIPIENT_EMAIL used for testing flask-mail
 from app import app
 
 # Drop and create all tables to start clean
@@ -10,7 +11,7 @@ User.query.delete()
 
 admin = User.register(username='testAdmin', 
                     password='123test123', 
-                    email="admin@gmail.com", 
+                    email=RECIPIENT_EMAIL, 
                     first_name="Test", 
                     last_name="Admin")
 admin.is_admin = True

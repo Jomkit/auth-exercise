@@ -1,10 +1,21 @@
-from flask import Flask, render_template, redirect, flash, session, Response, abort
+from flask import Flask, render_template, redirect, flash, session, abort, request
+from flask_mail import Mail, Message
 from functools import wraps
 from models import db, connect_db, User, Feedback
-from forms import RegisterForm, LoginForm, FeedbackForm
-from SECRETS import secret_key
+from forms import RegisterForm, LoginForm, FeedbackForm, ResetPasswordForm
+from SECRETS import secret_key, MAIL_USERNAME, MAIL_PW
+import secrets
 
 app = Flask(__name__)
+mail = Mail(app)
+
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 465
+app.config['MAIL_USERNAME'] = MAIL_USERNAME 
+app.config['MAIL_PASSWORD'] = MAIL_PW
+app.config['MAIL_USE_TLS'] = False
+app.config['MAIL_USE_SSL'] = True
+mail = Mail(app)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql:///auth_db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -124,6 +135,65 @@ def show_user_info(username):
     
     return render_template('user-info.html', user=user)
 
+@app.route('/reset-email', methods=['GET', 'POST'])
+def send_reset_email():
+    """Send an email to reset user's password
+
+    First verify that the username and email match, then send an email
+    to the user's email with a link to a rest-password form
+    """
+    # Check that user exists and that the email matches
+
+    # if posting, send recovery email
+    if request.method == 'POST':
+        username = request.form['username']
+        user = User.query.get(username)
+
+        if not user:
+            flash('Username incorrect', 'warning')
+            return redirect('/reset-email')
+        elif user.email != request.form['email']:
+            flash('Username and email address do not match', 'danger')
+            return redirect('/reset-email')
+        
+        reset_token = secrets.token_urlsafe()
+        msg = Message(subject='Recovery Email',
+                      sender=MAIL_USERNAME,
+                      recipients=[user.email])
+        email_html = f'<p>Hello {user.username}, <br> A password reset was recently requested for your account. <br> If this is you, please follow the link below, and type in the unique token: {reset_token} <br> <a href="http://localhost:5000/reset-password">LINK</a> <br> </p>'
+        msg.html = email_html
+        mail.send(msg)
+
+        user.reset_token = reset_token
+        db.session.commit()
+
+        flash('Please check your email for the recovery email', 'success')
+        return redirect('/')
+        
+    return render_template('reset-email-form.html')
+
+@app.route('/reset-password', methods=['GET','POST'])
+def reset_password():
+    """Route for resetting password
+
+    User requesting to reset their password must have the appropriate 
+    reset_token, sent via email
+    NOTE: consider hashing the token
+    """
+    form = ResetPasswordForm()
+    if form.validate_on_submit():
+        # get the user instance by reset token, should only have one
+        user = User.query.filter_by(reset_token=form.token.data).one()
+
+        if user:
+            user.password = user.newPassword(form.new_password.data)
+            user.reset_token = None
+            db.session.commit()
+            flash('Password successfully reset!', 'success')
+            return redirect('/login')
+
+    return render_template('reset-password-form.html', form=form)
+
 @app.route('/users/<string:username>/delete', methods=['POST'])
 @login_required
 def delete_user(username):
@@ -139,6 +209,7 @@ def delete_user(username):
         # destination user needs to be reassigned to user
         admin = user
         user = User.query.get_or_404(username)
+
         db.session.delete(user)
         db.session.commit()
 
@@ -237,3 +308,4 @@ def show_secret():
     else:
         flash('Please login to access secret page', 'danger')
         return redirect('/login')
+    
