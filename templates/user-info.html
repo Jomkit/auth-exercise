@@ -4,25 +4,38 @@
 {% block content %}
 <div class="card my-5">
   <div class="card-body">
-    <h5 class="card-title">{{ user.username }}</h5>
+    <h3 class="card-title">{{ user.username }}</h3>
     <ul class="list-group list-group-flush">
         <li class="list-group-item"><strong>First Name:</strong> {{ user.first_name }}</li>
         <li class="list-group-item"><strong>Last Name:</strong> {{ user.last_name }}</li>
         <li class="list-group-item"><strong>Email Address:</strong> {{ user.email }}</li>
     </ul>
     
-    <form action="/logout" method="POST">
-        <button class="btn btn-primary" type="submit">Logout</button>
-    </form>
+    <div class="container">
+    <div class="row row-cols-auto">
+        <div class="col">
+            <form action="/logout" method="POST">
+                <button class="btn btn-primary" type="submit">Logout</button>
+            </form>
+        </div>
+
+        <div class="col">
+            <form action="/users/{{user.username}}/delete" method="POST">
+                <button class="btn btn-danger">Delete Account</button>
+            </form>
+        </div>
+    
+    </div>
+    </div>
     
   </div>
 </div>
 
 <h3 class="display-3">Feedback</h3>
 <div class="container border">
-<a href="#" class="btn btn-primary my-3">Add Feedback</a>
+<a href="/users/{{ user.username }}/feedback/add" class="btn btn-primary my-3">Add Feedback</a>
     {% for fb in user.feedback %}
-        <div class="card my-5">
+        <div class="card mb-3">
         <div class="card-body">
             <h5 class="card-title">{{ fb.title }}</h5>
             <figure>
@@ -30,7 +43,7 @@
                     <p>{{ fb.content }}</p>
                 </blockquote>
                 <figcaption class="blockquote-footer">
-                    <cite title="username">{{ fb.user }}</cite>
+                    <cite title="username">{{ fb.user.username }}</cite>
                 </figcaption>
             </figure>
             

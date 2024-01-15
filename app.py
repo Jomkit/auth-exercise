@@ -1,6 +1,7 @@
-from flask import Flask, render_template, redirect, flash, session
+from flask import Flask, render_template, redirect, flash, session, g, request
+from functools import wraps
 from models import db, connect_db, User, Feedback
-from forms import RegisterForm, LoginForm
+from forms import RegisterForm, LoginForm, FeedbackForm
 from SECRETS import secret_key
 
 app = Flask(__name__)
@@ -13,6 +14,26 @@ app.config['SECRET_KEY'] = secret_key
 app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = False
 
 connect_db(app)
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if session.get('username') is None:
+            flash('Unauthorized access', 'danger')
+            return redirect('/login')
+        return f(*args, **kwargs)
+    return decorated_function
+
+def check_same_user(username):
+    # User logged in, fetch user data for user page attempting to be access
+    user = User.query.get_or_404(username)
+    # Check session user aka logged in user is same as user being accessed
+    if session.get('username', False) != user.username:
+        # send to own user page
+        flash('Unauthorized access', 'warning')
+        return redirect(f'/users/{session["username"]}')
+    else: 
+        return user
 
 @app.route('/')
 def redirect_to_register():
@@ -68,29 +89,50 @@ def login():
     return render_template('login-form.html', form=form)
 
 @app.route('/users/<string:username>')
+@login_required
 def show_user_info(username):
     """Show user's information except password"""
 
-    # No user logged in
-    if session.get('username', False) == False:
-        flash('Please login', 'danger')
-        return redirect('/login')
+    user = check_same_user(username)
+    
+    return render_template('user-info.html', user=user)
 
-    # User logged in, fetch user data for user page attempting to be access
-    user = User.query.filter_by(username=username).first()
-    # Check session user aka logged in user is same as user being accessed
-    if session.get('username', False) == user.username:
-        # send to user page
-        return render_template('user-info.html', user=user)
-    else: 
-        # send to own user page
-        flash('Attempted to access another user page', 'warning')
-        return redirect(f'/users/{session["username"]}')
+@app.route('/users/<string:username>/delete', methods=['POST'])
+@login_required
+def delete_user(username):
+    """Delete user.
+    Should first check that the user requesting to delete is the same
+    as the current user logged in"""
+
+    # Check user is user, else redirect to user page
+    user = check_same_user(username)
+    db.session.delete(user)
+    db.session.commit()
+    
+    session.pop('username')
+    flash('Account deleted', 'danger')
+    return redirect('/')
     
 @app.route('/users/<string:username>/feedback/add', methods=['GET', 'POST'])
+@login_required
 def feedback_form(username):
+    """Get and post feedback"""
     
-    return render_template('feedback-form.html')
+    user = check_same_user(username)
+
+    form = FeedbackForm()
+    if form.validate_on_submit():
+        title = form.title.data
+        content = form.content.data
+
+        new_fb = Feedback(title=title, content=content, username=user.username)
+        db.session.add(new_fb)
+        db.session.commit()
+
+        flash('Feedback added!', 'success')
+        return redirect(f'/users/{user.username}')
+    
+    return render_template('feedback-form.html', form=form)
 
 @app.route('/logout', methods=['POST'])
 def logout():
