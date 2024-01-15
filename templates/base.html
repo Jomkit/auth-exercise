@@ -17,6 +17,10 @@
                 {% endif %}
             {% endwith %}
 
+            {% if admin %}
+            <h1 class="display-1"><strong>ADMIN VIEW</strong></h1>
+            {% endif %}
+
             {% block content %}
             {% endblock %}
         </div>

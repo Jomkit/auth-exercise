@@ -19,6 +19,7 @@ class User(db.Model):
     email = db.Column(db.String(50), nullable=False, unique=True)
     first_name = db.Column(db.String(30), nullable=False)
     last_name = db.Column(db.String(30), nullable=False)
+    is_admin = db.Column(db.Boolean, nullable=False, default=False)
 
     feedback = db.relationship('Feedback', backref='user', cascade='all, delete-orphan')
 
