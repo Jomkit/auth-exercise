@@ -2,10 +2,14 @@
 {% block title %}User Info{% endblock %}
 
 {% block content %}
+
 <h3 class="display-3 mt-5">User</h3>
 <div class="card mb-5">
   <div class="card-body">
-    <h3 class="card-title">{{ user.username }}</h3>
+    <h3 class="card-title">
+    {{ user.username }} 
+    {% if user.is_admin == True %}<strong>**ADMIN**</strong>{% endif %}
+    </h3>
     <ul class="list-group list-group-flush">
         <li class="list-group-item"><strong>First Name:</strong> {{ user.first_name }}</li>
         <li class="list-group-item"><strong>Last Name:</strong> {{ user.last_name }}</li>

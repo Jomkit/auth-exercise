@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, TextAreaField
-from wtforms.validators import DataRequired
+from wtforms.validators import DataRequired, EqualTo
 
 def usernameField(): 
     return StringField('Username', validators=[DataRequired()])
@@ -23,3 +23,9 @@ class FeedbackForm(FlaskForm):
     """User Feedback"""
     title = StringField("Title", validators=[DataRequired()])
     content = TextAreaField("Content", validators=[DataRequired()])
+
+class ResetPasswordForm(FlaskForm):
+    """For resetting password"""
+    token = StringField("Reset Token", validators=[DataRequired()])
+    new_password = PasswordField("New Password", validators=[DataRequired(), EqualTo('confirm_password', message='Passwords must match')])
+    confirm_password = PasswordField("Confirm New Password", validators=[DataRequired()])

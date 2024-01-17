@@ -8,7 +8,7 @@
         {{ field(class_="form-control") }}
 
         {% for error in field.errors %}
-        {{ error }}
+        <p class="text-danger">{{ error }}</p>
         {% endfor %}
     </p>
 
